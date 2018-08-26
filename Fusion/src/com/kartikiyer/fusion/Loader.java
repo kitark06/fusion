@@ -28,14 +28,13 @@ public class Loader
 
 		String directory = "inputFiles/";
 		streamFiletoKafkaTopic(directory + "BillingCost.txt", true, kafkaClusterIp, "BillingCostClient", keySerializer, valueSerializer, "billingCostTopic");
-		// streamFiletoKafkaTopic(directory + "InsuranceDetails.txt", true, kafkaClusterIp, "InsuranceDetailsClient", keySerializer, valueSerializer, "insuranceDetailsTopic");
-		// streamFiletoKafkaTopic(directory + "Medicines.txt", true, kafkaClusterIp, "MedicinesClient", keySerializer, valueSerializer, "medicinesTopic");
-		// streamFiletoKafkaTopic(directory + "Patients.txt", false, kafkaClusterIp, "PatientsClient", keySerializer, valueSerializer, "patientsTopic");
-		// streamFiletoKafkaTopic(directory + "Treatment.txt", true, kafkaClusterIp, "TreatmentClient", keySerializer, valueSerializer, "treatmentTopic");
+		streamFiletoKafkaTopic(directory + "InsuranceDetails.txt", true, kafkaClusterIp, "InsuranceDetailsClient", keySerializer, valueSerializer, "insuranceDetailsTopic");
+		streamFiletoKafkaTopic(directory + "Medicines.txt", true, kafkaClusterIp, "MedicinesClient", keySerializer, valueSerializer, "medicinesTopic");
+		streamFiletoKafkaTopic(directory + "Patients.txt", false, kafkaClusterIp, "PatientsClient", keySerializer, valueSerializer, "patientsTopic");
+		streamFiletoKafkaTopic(directory + "Treatment.txt", true, kafkaClusterIp, "TreatmentClient", keySerializer, valueSerializer, "treatmentTopic");
 	}
 
-	private void streamFiletoKafkaTopic(	String inputFileLocation, boolean generatePCN, String kafkaClusterIp, String clientId, String keySerializer,
-									String valueSerializer, String topicName)
+	private void streamFiletoKafkaTopic(String inputFileLocation, boolean generatePCN, String kafkaClusterIp, String clientId, String keySerializer, String valueSerializer, String topicName)
 	{
 		new Thread(() -> {
 			try (
@@ -76,13 +75,22 @@ public class Loader
 					{
 						json.append("\"" + headers[i] + "\"");
 						json.append(":");
-						json.append("\"" + /*(*/data[i]/*.contains("\"") ? data[i].replaceAll("\"", "") : data)*/ + "\"");
+						json.append("\"" + data[i] + "\"");
 						json.append(",");
 					}
 					json.setLength(json.length() - 1);
 					json.append("}");
 
 					System.out.println(json);
+					
+					try
+					{
+						Thread.sleep(500);
+					}
+					catch (InterruptedException e)
+					{
+						e.printStackTrace();
+					}
 
 					// writer.writeMessage(json.toString());
 				}

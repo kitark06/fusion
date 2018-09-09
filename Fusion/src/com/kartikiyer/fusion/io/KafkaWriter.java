@@ -41,7 +41,8 @@ public class KafkaWriter<K, V> implements AutoCloseable
 	public void writeMessage(K key, V value)
 	{
 		ProducerRecord<K, V> record = new ProducerRecord<>(topicName, key, value);
-		Future<RecordMetadata> metadata = producer.send(record, (metadata1, exception) -> {
+		Future<RecordMetadata> metadata = producer.send(record, (metadata1, exception) ->
+		{
 			if (exception != null)
 				log.error(exception.toString());
 		});
@@ -50,7 +51,8 @@ public class KafkaWriter<K, V> implements AutoCloseable
 	public void writeMessage(V value)
 	{
 		ProducerRecord<K, V> record = new ProducerRecord<>(topicName, null, value);
-		Future<RecordMetadata> metadata = producer.send(record, (metadata1, exception) -> {
+		Future<RecordMetadata> metadata = producer.send(record, (metadata1, exception) ->
+		{
 			if (exception != null)
 				log.error(exception.toString());
 		});
@@ -60,10 +62,5 @@ public class KafkaWriter<K, V> implements AutoCloseable
 	public void close()
 	{
 		producer.close();
-	}
-
-	public static void main(String[] args) throws InterruptedException, ExecutionException, TimeoutException
-	{
-		KafkaWriter<String, String> stringStringKafkaWriter = new KafkaWriter<>("localhost:9092", "FusionTestClient", StringSerializer.class.getName(), StringSerializer.class.getName(), "FusionTestTopic");
 	}
 }

@@ -9,17 +9,22 @@ import org.apache.flink.streaming.api.functions.windowing.RichAllWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.GlobalWindow;
 import org.apache.flink.util.Collector;
 import org.apache.http.HttpHost;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.xcontent.XContentType;
 
+import com.kartikiyer.fusion.StreamingCore;
 import com.kartikiyer.fusion.io.ElasticSearchOperations;
 
 
 public class ElasticSearchBulkIndexMapper extends RichAllWindowFunction<String, BulkItemResponse, GlobalWindow>
 {
+	Logger						LOG	= LoggerFactory.getLogger(ElasticSearchBulkIndexMapper.class);
+
 	private String	index;
 	private String	type;
 	private String	elasticSearchClusterIp;
@@ -51,12 +56,12 @@ public class ElasticSearchBulkIndexMapper extends RichAllWindowFunction<String, 
 		values.forEach(json ->
 		{
 			IndexRequest request = new IndexRequest(index, type);
-			request.source(json,XContentType.JSON);
-//			request.
+			request.source(json, XContentType.JSON);
+			// request.
 			requests.add(request);
 		});
 
-		System.out.println("$$$$$$$$$$$ " + requests.numberOfActions());
+		LOG.error("$$$$$$$$$$$ " + requests.numberOfActions());
 
 		BulkResponse bulkResponse;
 		try

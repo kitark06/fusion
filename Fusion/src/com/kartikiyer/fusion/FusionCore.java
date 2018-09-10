@@ -11,14 +11,12 @@ import java.util.Optional;
 
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.api.java.DataSet;
-import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.utils.ParameterTool;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem.WriteMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.kartikiyer.fusion.map.DataEnrichmentMapper;
 import com.kartikiyer.fusion.map.ElasticsearchActivityStatefulMapper;
@@ -29,17 +27,17 @@ import com.kartikiyer.fusion.model.MedicineOrders;
 import com.kartikiyer.fusion.model.Treatment;
 import com.kartikiyer.fusion.util.CommonUtilityMethods;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
 
 public class FusionCore
 {
+	Logger LOG = LoggerFactory.getLogger(FusionCore.class);
+
 	public static void main(String[] args) throws Exception
 	{
 		FusionCore fusionCore = new FusionCore();
-		Logger	.getRootLogger()
-				.setLevel(Level.DEBUG);
+
+//		Logger	.getRootLogger()
+//				.setLevel(Level.ERROR);
 
 		fusionCore.startFusion(args);
 	}
@@ -75,7 +73,8 @@ public class FusionCore
 		env	.getConfig()
 			.setGlobalJobParameters(CommonUtilityMethods.buildGlobalJobParameters(extraParameters));
 
-		DataStream<String> stream = env.addSource(flinkKafkaConsumer);
+		int parallelism = 1;
+		DataStream<String> stream = env.addSource(flinkKafkaConsumer).setParallelism(parallelism);
 
 		stream	.map(new KeyByPcnMapper())
 				.name("KeyByPcnMapper")
@@ -85,10 +84,12 @@ public class FusionCore
 				.filter(queryablePcn -> queryablePcn.isPresent())
 				.map(new MapFunction<Optional<String>, Optional<String>>()
 				{
+					Logger LOG = LoggerFactory.getLogger(FusionCore.class);
+					
 					@Override
 					public Optional<String> map(Optional<String> queryablePcn) throws Exception
 					{
-						System.out.println(queryablePcn.get());
+						LOG.error(queryablePcn.get());
 						return queryablePcn;
 					}
 				})
@@ -96,7 +97,7 @@ public class FusionCore
 				.writeAsText("/root/home/output", WriteMode.OVERWRITE)
 				.name("DataEnrichmentMapper");
 
-		env.setParallelism(1).execute();
+		env.setParallelism(parallelism).execute();
 	}
 
 

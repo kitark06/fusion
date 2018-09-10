@@ -15,11 +15,10 @@ import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.http.HttpHost;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHits;
 
 import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
@@ -32,9 +31,14 @@ import com.kartikiyer.fusion.model.PatientInfo;
 import com.kartikiyer.fusion.model.Treatment;
 import com.kartikiyer.fusion.util.CommonUtilityMethods;
 
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+
 
 public class DataEnrichmentMapper extends RichMapFunction<Optional<String>, String> implements Serializable
 {
+	Logger						LOG	= LoggerFactory.getLogger(DataEnrichmentMapper.class);
+
 	private String					mappingType;
 	private String					patientInfoIndexName;
 	private ElasticSearchOperations	esOps;
@@ -85,16 +89,21 @@ public class DataEnrichmentMapper extends RichMapFunction<Optional<String>, Stri
 			{
 				SearchResponse response = esOps.performSearch(indexName, mappingType, query);
 
-				String result = response	.getHits()
-									.getHits()[0].getSourceAsString();
+				SearchHits hits = response.getHits();
+				LOG.debug(" pcn " + pcn + " indexName -- " + indexName + " hits -- " + hits.totalHits);
 
-				Object obj = gson.fromJson(result, Class.forName(classFQName));
+				// done to prevent ArrayIndexOutOfBounds : 0 if someone deleted the record from ES which ElasticsearchActivityStatefulMapper tracked as inserted
+				if (hits.totalHits > 0)
+				{
+					String result = hits.getHits()[0].getSourceAsString();
+					Object obj = gson.fromJson(result, Class.forName(classFQName));
 
-				Field field = enrichedData	.getClass()
-										.getDeclaredField(fields.get(Class.forName(classFQName)));
+					Field field = enrichedData	.getClass()
+											.getDeclaredField(fields.get(Class.forName(classFQName)));
 
-				field.setAccessible(true);
-				field.set(enrichedData, obj);
+					field.setAccessible(true);
+					field.set(enrichedData, obj);
+				}
 			}
 			catch (IOException e)
 			{
@@ -136,55 +145,5 @@ public class DataEnrichmentMapper extends RichMapFunction<Optional<String>, Stri
 	{
 		super.close();
 		esOps.close();
-	}
-
-	public static void main(String[] args) throws NoSuchFieldException, SecurityException, ClassNotFoundException, IllegalArgumentException, IllegalAccessException
-	{
-		Map<String, Class> dataEnrichmentIndexClassPairs = new HashMap<>();
-		dataEnrichmentIndexClassPairs.put(TREATMENT, Treatment.class);
-
-
-		ExclusionStrategy skipPcn = new ExclusionStrategy()
-		{
-			@Override
-			public boolean shouldSkipField(FieldAttributes field)
-			{
-				return field	.getName()
-							.equalsIgnoreCase(ENRICHED_DATAMODEL_PK);
-			}
-
-			@Override
-			public boolean shouldSkipClass(Class<?> clazz)
-			{
-				return false;
-			}
-		};
-
-		Gson gson = new GsonBuilder()	.setDateFormat(INCOMING_ES_RECORD_DF)
-								.setExclusionStrategies(skipPcn)
-								.create(); // Date eg :: 07-14-2015
-
-		String result = "{\"pcn\":\"919\",\"icd\":\"C79.48\",\"treatmentDesc\":\"OTITIS MEDIA NOS\",\"visitDate\":\"30-06-2013\"}";
-
-		EnrichedData enrichedData = new EnrichedData();
-		Class classFQName = dataEnrichmentIndexClassPairs.get(TREATMENT);
-		Object obj = gson.fromJson(result, (classFQName));
-
-		Class<?> clazz = enrichedData.getClass();
-		Map<Class, String> fields = new HashMap<>();
-
-		for (int i = 0; i < clazz.getDeclaredFields().length; i++)
-		{
-			Field field = clazz.getDeclaredFields()[i];
-			fields.put(field.getType(), clazz.getDeclaredFields()[i].getName());
-		}
-
-		Field field = enrichedData	.getClass()
-								.getDeclaredField(fields.get((classFQName)));
-
-		field.setAccessible(true);
-		field.set(enrichedData, obj);
-
-		System.out.println(enrichedData.toString());
 	}
 }

@@ -32,6 +32,7 @@ import com.kartikiyer.fusion.model.Treatment;
 import com.kartikiyer.fusion.util.CommonUtilityMethods;
 
 import org.slf4j.LoggerFactory;
+import org.slf4j.spi.LocationAwareLogger;
 import org.slf4j.Logger;
 
 
@@ -74,9 +75,9 @@ public class DataEnrichmentMapper extends RichMapFunction<Optional<String>, Stri
 		String pcn = queryablePcn.get();
 		QueryBuilder query = QueryBuilders.termQuery(ENRICHED_DATAMODEL_PK, pcn);
 
-		Gson gson = new GsonBuilder()	.setDateFormat(INCOMING_ES_RECORD_DF)
+		Gson gson = new GsonBuilder()	.setDateFormat(INCOMING_ES_RECORD_DF) // Date eg :: 07-14-2015
 								.setExclusionStrategies(CommonUtilityMethods.excludeKeyDuringSerializer(ENRICHED_DATAMODEL_PK))
-								.create(); // Date eg :: 07-14-2015
+								.create();
 
 		EnrichedData enrichedData = new EnrichedData();
 		enrichedData.setPcn(pcn);
@@ -90,9 +91,9 @@ public class DataEnrichmentMapper extends RichMapFunction<Optional<String>, Stri
 				SearchResponse response = esOps.performSearch(indexName, mappingType, query);
 
 				SearchHits hits = response.getHits();
-				LOG.debug(" pcn " + pcn + " indexName -- " + indexName + " hits -- " + hits.totalHits);
+				LOG.debug(" pcn [{}]  indexName [{}]  hits [{}] ", pcn, indexName, hits.totalHits);
 
-				// done to prevent ArrayIndexOutOfBounds : 0 if someone deleted the record from ES which ElasticsearchActivityStatefulMapper tracked as inserted
+				// done to prevent ArrayIndexOutOfBounds : 0 in the unlikely chance that someone deleted the record from ES which ElasticsearchActivityStatefulMapper tracked as inserted
 				if (hits.totalHits > 0)
 				{
 					String result = hits.getHits()[0].getSourceAsString();
@@ -104,6 +105,9 @@ public class DataEnrichmentMapper extends RichMapFunction<Optional<String>, Stri
 					field.setAccessible(true);
 					field.set(enrichedData, obj);
 				}
+				else
+					LOG.error("Record with pcn [{}] inserted in index [{}] was not found. It was probably deleted after being marked as Indexed by ElasticsearchActivityStatefulMapper.", pcn,
+							indexName);
 			}
 			catch (IOException e)
 			{
@@ -133,6 +137,11 @@ public class DataEnrichmentMapper extends RichMapFunction<Optional<String>, Stri
 		{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+		catch (NullPointerException e)
+		{
+			LOG.error(" ********************* " + enrichedData.getPcn());
+			throw e;
 		}
 
 

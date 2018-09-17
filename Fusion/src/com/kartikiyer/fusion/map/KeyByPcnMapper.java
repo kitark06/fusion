@@ -31,7 +31,7 @@ public class KeyByPcnMapper extends RichMapFunction<String, Tuple2<String, Strin
 		key = gson.fromJson(value, JsonObject.class)
 				.get("pcn")
 				.getAsString();
-		LOG.error("kitark60 key = " + key + "value = " + value);
+		LOG.debug("key [{}] -- value = [{}]",key,value);
 		return new Tuple2<String, String>(key, value);
 	}
 }

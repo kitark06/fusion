@@ -35,10 +35,6 @@ public class FusionCore
 	public static void main(String[] args) throws Exception
 	{
 		FusionCore fusionCore = new FusionCore();
-
-//		Logger	.getRootLogger()
-//				.setLevel(Level.ERROR);
-
 		fusionCore.startFusion(args);
 	}
 
@@ -82,17 +78,17 @@ public class FusionCore
 				.map(new ElasticsearchActivityStatefulMapper())
 				.name("ElasticsearchActivityStatefulMapper")
 				.filter(queryablePcn -> queryablePcn.isPresent())
-				.map(new MapFunction<Optional<String>, Optional<String>>()
+				/*.map(new MapFunction<Optional<String>, Optional<String>>()
 				{
 					Logger LOG = LoggerFactory.getLogger(FusionCore.class);
-					
+
 					@Override
 					public Optional<String> map(Optional<String> queryablePcn) throws Exception
 					{
 						LOG.error(queryablePcn.get());
 						return queryablePcn;
 					}
-				})
+				})*/
 				.map(new DataEnrichmentMapper())
 				.writeAsText("/root/home/output", WriteMode.OVERWRITE)
 				.name("DataEnrichmentMapper");

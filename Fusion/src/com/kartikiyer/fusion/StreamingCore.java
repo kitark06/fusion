@@ -45,11 +45,14 @@ public class StreamingCore
 		filesToStream.put(directory + "Patients.txt", PATIENTS_STREAM);
 		filesToStream.put(directory + "Treatment.txt", TREATMENT_FUSION_STREAM);
 
-		filesToStream.forEach((fileName, topicName) ->
-		{
-			new Thread(() ->
-			{
-				streamingCore.streamFiletoKafkaTopic(fileName, topicName.equals(PATIENTS_STREAM) ? false : true, kafkaClusterIp, topicName + "Client", keySerializer, valueSerializer, topicName);
+		int dataNeeded=337;
+
+		filesToStream
+		.forEach((fileName, topicName) -> {
+			new Thread(() -> {
+				streamingCore
+				// Dont generate PCN numbers for the patients data
+				.streamFiletoKafkaTopic(fileName, topicName.equals(PATIENTS_STREAM) ? false : true, kafkaClusterIp, topicName + "Client", keySerializer, valueSerializer, topicName, dataNeeded);
 			}).start();
 		});
 
@@ -64,7 +67,7 @@ public class StreamingCore
 		topicsToIndex.forEach((topic, indexName) -> new Thread(() -> streamingCore.streamRecordsToES(topic, indexName, args)).start());
 	}
 
-	private void streamFiletoKafkaTopic(String inputFileLocation, boolean generatePCN, String kafkaClusterIp, String clientId, String keySerializer, String valueSerializer, String topicName)
+	private void streamFiletoKafkaTopic(String inputFileLocation, boolean generatePrimaryKey, String kafkaClusterIp, String clientId, String keySerializer, String valueSerializer, String topicName, int dataNeeded)
 	{
 		try (KafkaWriter<String, String> writer = new KafkaWriter<>(kafkaClusterIp, clientId, keySerializer, valueSerializer, topicName);
 			BufferedReader bufferedReader = new BufferedReader(new FileReader(inputFileLocation));)
@@ -75,7 +78,6 @@ public class StreamingCore
 
 			int recordCount = 0;
 			int errorRecords = 0;
-			int dataNeeded = 10;
 
 			List<Integer> list = new ArrayList<>();
 			for (int i = 0; i < dataNeeded; i++)
@@ -95,20 +97,20 @@ public class StreamingCore
 					StringBuilder json = new StringBuilder();
 					json.append("{");
 
-					if (generatePCN)
+					if (generatePrimaryKey)
 					{
-						json.append("\"pcn\"");
-						json.append(":");
-						json.append("\"" + list.get(dataNeeded) + "\"");
-						json.append(",");
+						json	.append("\"pcn\"")
+							.append(":")
+							.append("\"" + list.get(dataNeeded) + "\"")
+							.append(",");
 					}
 
 					for (int i = 0; i < headers.length; i++)
 					{
-						json.append("\"" + headers[i] + "\"");
-						json.append(":");
-						json.append("\"" + data[i] + "\"");
-						json.append(",");
+						json	.append("\"" + headers[i] + "\"")
+							.append(":")
+							.append("\"" + data[i] + "\"")
+							.append(",");
 					}
 					json.setLength(json.length() - 1);
 					json.append("}");

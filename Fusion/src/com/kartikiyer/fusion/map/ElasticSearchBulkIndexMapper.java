@@ -61,8 +61,6 @@ public class ElasticSearchBulkIndexMapper extends RichAllWindowFunction<String, 
 			requests.add(request);
 		});
 
-		LOG.error("$$$$$$$$$$$ " + requests.numberOfActions());
-
 		BulkResponse bulkResponse;
 		try
 		{
@@ -70,8 +68,11 @@ public class ElasticSearchBulkIndexMapper extends RichAllWindowFunction<String, 
 			if (bulkResponse.hasFailures())
 				bulkResponse.forEach(response ->
 				{
-					if (response.isFailed())
+					if (response.isFailed()) {
+						LOG.error(response.getClass().toString());
+						LOG.error(response.getId().toString());
 						out.collect(response);
+					}
 				});
 		}
 		catch (IOException e)

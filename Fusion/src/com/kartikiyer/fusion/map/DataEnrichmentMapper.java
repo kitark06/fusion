@@ -140,6 +140,7 @@ public class DataEnrichmentMapper extends RichMapFunction<Optional<String>, Stri
 		}
 		catch (NullPointerException e)
 		{
+			//TODO remove it
 			LOG.error(" ********************* " + enrichedData.getPcn());
 			throw e;
 		}

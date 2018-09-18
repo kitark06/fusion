@@ -28,7 +28,7 @@ public class ProjectFusionConstants
 	public static final int		ELASTIC_SEARCH_CLUSTER_PORT			= 9200;
 	public static final String	ES_DEFAULT_INDEX_TYPE				= "_doc";
 	public static final String	INCOMING_ES_RECORD_DF				= "dd-mm-yyyy";
-	public static final int		ELASTICSEARCH_BULK_INSERT_WINDOW_COUNT	= 12;
+	public static final int		ELASTICSEARCH_BULK_INSERT_WINDOW_COUNT	= 1;
 
 	// Elastic Search indexes names
 	public static final String	PATIENT_INFO						= "patient_info";

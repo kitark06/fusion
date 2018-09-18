@@ -78,19 +78,19 @@ public class FusionCore
 				.map(new ElasticsearchActivityStatefulMapper())
 				.name("ElasticsearchActivityStatefulMapper")
 				.filter(queryablePcn -> queryablePcn.isPresent())
-				/*.map(new MapFunction<Optional<String>, Optional<String>>()
+				.map(new MapFunction<Optional<String>, Optional<String>>()
 				{
 					Logger LOG = LoggerFactory.getLogger(FusionCore.class);
 
 					@Override
 					public Optional<String> map(Optional<String> queryablePcn) throws Exception
 					{
-						LOG.error(queryablePcn.get());
+//						LOG.error(queryablePcn.get());
 						return queryablePcn;
 					}
-				})*/
+				})
 				.map(new DataEnrichmentMapper())
-				.writeAsText("/root/home/output", WriteMode.OVERWRITE)
+				.writeAsText("D:/workspace/output", WriteMode.OVERWRITE).setParallelism(parallelism)
 				.name("DataEnrichmentMapper");
 
 		env.setParallelism(parallelism).execute();

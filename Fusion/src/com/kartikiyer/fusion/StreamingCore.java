@@ -42,7 +42,7 @@ public class StreamingCore
 		filesToStream.put(directory + "BillingCost.txt", BILLING_COST_FUSION_STREAM);
 		filesToStream.put(directory + "InsuranceDetails.txt", INSURANCE_DETAILS_FUSION_STREAM);
 		filesToStream.put(directory + "MedicineOrders.txt", MEDICINE_FUSION_STREAM);
-		filesToStream.put(directory + "Patients.txt", PATIENTS_STREAM);
+//		filesToStream.put(directory + "Patients.txt", PATIENTS_STREAM);
 		filesToStream.put(directory + "Treatment.txt", TREATMENT_FUSION_STREAM);
 
 		int dataNeeded=337;
@@ -58,7 +58,7 @@ public class StreamingCore
 
 
 		Map<String, String> topicsToIndex = new HashMap<>();
-		topicsToIndex.put(PATIENTS_STREAM, PATIENT_INFO);
+//		topicsToIndex.put(PATIENTS_STREAM, PATIENT_INFO);
 		topicsToIndex.put(BILLING_COST_FUSION_STREAM, BILLING_COST);
 		topicsToIndex.put(INSURANCE_DETAILS_FUSION_STREAM, INSURANCE_DETAILS);
 		topicsToIndex.put(MEDICINE_FUSION_STREAM, MEDICINE_ORDERS);

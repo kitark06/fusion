@@ -138,6 +138,7 @@ public class StreamingCore
 
 		FlinkKafkaConsumerBase<String> flinkKafkaConsumer = CommonUtilityMethods.getFlinkKakfaConsumer(topics, new SimpleStringSchema());
 
+		// TODO
 		// StreamExecutionEnvironment env = StreamExecutionEnvironment.createRemoteEnvironment(FLINK_CLUSTER_IP, FLINK_CLUSTER_PORT, jarfiles);
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment();
 

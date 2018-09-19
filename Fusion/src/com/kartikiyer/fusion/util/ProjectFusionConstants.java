@@ -6,6 +6,7 @@ public class ProjectFusionConstants
 	public static final String	ENRICHED_DATAMODEL_PK				= "pcn";
 	public static final String	KEY_VALUE_DELIM					= "|";
 	public static final String	ELEMENT_DELIM						= "~";
+	public static final int		FUSION_CORE_WINDOW_COUNT				= 4;
 
 	// Flink Cluster details
 	public static final int		FLINK_CLUSTER_PORT					= 6123;
@@ -28,7 +29,7 @@ public class ProjectFusionConstants
 	public static final int		ELASTIC_SEARCH_CLUSTER_PORT			= 9200;
 	public static final String	ES_DEFAULT_INDEX_TYPE				= "_doc";
 	public static final String	INCOMING_ES_RECORD_DF				= "dd-mm-yyyy";
-	public static final int		ELASTICSEARCH_BULK_INSERT_WINDOW_COUNT	= 1;
+	public static final int		ELASTICSEARCH_BULK_INSERT_WINDOW_COUNT	= 2;
 
 	// Elastic Search indexes names
 	public static final String	PATIENT_INFO						= "patient_info";

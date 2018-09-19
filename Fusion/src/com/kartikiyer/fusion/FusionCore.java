@@ -7,9 +7,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.core.fs.FileSystem.WriteMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -18,7 +16,7 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.kartikiyer.fusion.map.DataEnrichmentMapper;
+import com.kartikiyer.fusion.map.DataEnrichmentMapper2;
 import com.kartikiyer.fusion.map.ElasticsearchActivityStatefulMapper;
 import com.kartikiyer.fusion.map.KeyByPcnMapper;
 import com.kartikiyer.fusion.model.BillingCost;
@@ -70,30 +68,28 @@ public class FusionCore
 			.setGlobalJobParameters(CommonUtilityMethods.buildGlobalJobParameters(extraParameters));
 
 		int parallelism = 1;
-		DataStream<String> stream = env.addSource(flinkKafkaConsumer).setParallelism(parallelism);
+		DataStream<String> stream = env	.addSource(flinkKafkaConsumer)
+									.setParallelism(parallelism);
 
 		stream	.map(new KeyByPcnMapper())
-				.name("KeyByPcnMapper")
+				// parse and map input jsons create tuple2 of [jsonDocId, Value] which gets keyed by the docID  
 				.keyBy(0)
 				.map(new ElasticsearchActivityStatefulMapper())
-				.name("ElasticsearchActivityStatefulMapper")
 				.filter(queryablePcn -> queryablePcn.isPresent())
-				.map(new MapFunction<Optional<String>, Optional<String>>()
-				{
-					Logger LOG = LoggerFactory.getLogger(FusionCore.class);
 
-					@Override
-					public Optional<String> map(Optional<String> queryablePcn) throws Exception
-					{
-//						LOG.error(queryablePcn.get());
-						return queryablePcn;
-					}
-				})
-				.map(new DataEnrichmentMapper())
-				.writeAsText("D:/workspace/output", WriteMode.OVERWRITE).setParallelism(parallelism)
-				.name("DataEnrichmentMapper");
+				// done so as to parallelize the subsequent countWindow operation
+				// using Math.abs to keep the resulting integer positive as String.hashcode can return negative values
+				.keyBy(queryablePcn -> Math.abs(queryablePcn.get().hashCode() % parallelism))
+				.countWindow(FUSION_CORE_WINDOW_COUNT)
+				.apply(new DataEnrichmentMapper2())
 
-		env.setParallelism(parallelism).execute();
+//				map(new DataEnrichmentMapper())
+
+				.writeAsText("D:/workspace/output", WriteMode.OVERWRITE)
+				.setParallelism(parallelism);
+
+		env	.setParallelism(parallelism)
+			.execute();
 	}
 
 

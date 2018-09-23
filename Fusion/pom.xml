@@ -16,23 +16,29 @@
 		<sourceDirectory>src</sourceDirectory>
 		<plugins>
 
-			<!-- <plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-dependency-plugin</artifactId>
-				<version>2.8</version>
-				<executions>
-					<execution>
-						<id>unpack-dependencies</id>
-						<phase>package</phase>
-						<goals>
-							<goal>unpack-dependencies</goal>
-						</goals>
-						<configuration>
-							<excludes>META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA</excludes>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin> -->
+			<plugin>
+				<!-- Use compiler plugin with tycho as the adapter to the JDT compiler. -->
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+					<compilerId>jdt</compilerId>
+				</configuration>
+				<dependencies>
+					<!-- This dependency provides the implementation of compiler "jdt": -->
+					<dependency>
+						<groupId>org.eclipse.tycho</groupId>
+						<artifactId>tycho-compiler-jdt</artifactId>
+						<version>0.21.0</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+
+			<!-- <plugin> <groupId>org.apache.maven.plugins</groupId> <artifactId>maven-dependency-plugin</artifactId>
+				<version>2.8</version> <executions> <execution> <id>unpack-dependencies</id>
+				<phase>package</phase> <goals> <goal>unpack-dependencies</goal> </goals>
+				<configuration> <excludes>META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA</excludes>
+				</configuration> </execution> </executions> </plugin> -->
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

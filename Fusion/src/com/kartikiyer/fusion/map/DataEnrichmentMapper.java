@@ -38,7 +38,7 @@ import org.slf4j.Logger;
 
 public class DataEnrichmentMapper extends RichMapFunction<Optional<String>, String> implements Serializable
 {
-	Logger						LOG	= LoggerFactory.getLogger(DataEnrichmentMapper.class);
+	private static final Logger		log	= LoggerFactory.getLogger(DataEnrichmentMapper.class);
 
 	private String					mappingType;
 	private String					patientInfoIndexName;
@@ -50,8 +50,7 @@ public class DataEnrichmentMapper extends RichMapFunction<Optional<String>, Stri
 	{
 		super.open(config);
 
-		ParameterTool parameters = (ParameterTool) getRuntimeContext()	.getExecutionConfig()
-															.getGlobalJobParameters();
+		ParameterTool parameters = (ParameterTool) getRuntimeContext().getExecutionConfig().getGlobalJobParameters();
 
 		this.mappingType = parameters.get("mappingType", ES_DEFAULT_INDEX_TYPE);
 		this.patientInfoIndexName = parameters.get("patientInfoIndexName", PATIENT_INFO);
@@ -91,7 +90,7 @@ public class DataEnrichmentMapper extends RichMapFunction<Optional<String>, Stri
 				SearchResponse response = esOps.performSearch(indexName, mappingType, query);
 
 				SearchHits hits = response.getHits();
-				LOG.debug(" pcn [{}]  indexName [{}]  hits [{}] ", pcn, indexName, hits.totalHits);
+				log.debug(" pcn [{}]  indexName [{}]  hits [{}] ", pcn, indexName, hits.totalHits);
 
 				// done to prevent ArrayIndexOutOfBounds : 0 in the unlikely chance that someone deleted the record from ES which ElasticsearchActivityStatefulMapper tracked as inserted
 				if (hits.totalHits > 0)
@@ -99,14 +98,13 @@ public class DataEnrichmentMapper extends RichMapFunction<Optional<String>, Stri
 					String result = hits.getHits()[0].getSourceAsString();
 					Object obj = gson.fromJson(result, Class.forName(classFQName));
 
-					Field field = enrichedData	.getClass()
-											.getDeclaredField(fields.get(Class.forName(classFQName)));
+					Field field = enrichedData.getClass().getDeclaredField(fields.get(Class.forName(classFQName)));
 
 					field.setAccessible(true);
 					field.set(enrichedData, obj);
 				}
 				else
-					LOG.error("Record with pcn [{}] inserted in index [{}] was not found. It was probably deleted after being marked as Indexed by ElasticsearchActivityStatefulMapper.", pcn,
+					log.error("Record with pcn [{}] inserted in index [{}] was not found. It was probably deleted after being marked as Indexed by ElasticsearchActivityStatefulMapper.", pcn,
 							indexName);
 			}
 			catch (IOException e)
@@ -123,14 +121,15 @@ public class DataEnrichmentMapper extends RichMapFunction<Optional<String>, Stri
 
 		try
 		{
-			QueryBuilder getPatientQuery = QueryBuilders.termQuery("patientID", enrichedData.getBillingCost()
-																			.getPatientID());
-
+			QueryBuilder getPatientQuery = QueryBuilders.termQuery("patientID", enrichedData.getBillingCost().getPatientID());
 			SearchResponse response = esOps.performSearch(patientInfoIndexName, mappingType, getPatientQuery);
-
-			String patientInfo = response	.getHits()
-									.getHits()[0].getSourceAsString();
-
+			if(response.getHits().totalHits == 0)
+			{
+				log.error(" 1 "+response.getHits());
+				log.error(" 2 "+enrichedData.getBillingCost().getPatientID());
+				log.error(" 3 "+response.getHits().totalHits);
+			}
+			String patientInfo = response.getHits().getHits()[0].getSourceAsString();
 			enrichedData.setPatientInfo(gson.fromJson(patientInfo, PatientInfo.class));
 		}
 		catch (IOException e)
@@ -138,10 +137,10 @@ public class DataEnrichmentMapper extends RichMapFunction<Optional<String>, Stri
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		catch (NullPointerException e)
+		catch (RuntimeException e)
 		{
-			//TODO remove it
-			LOG.error(" ********************* " + enrichedData.getPcn());
+			// TODO remove it
+			log.error(" ********************* " + enrichedData.getBillingCost().getPatientID());
 			throw e;
 		}
 

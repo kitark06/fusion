@@ -17,6 +17,7 @@ public class ProjectFusionConstants
 	public static final String	FUSION_CONSUMER_GROUP				= "fusionConsumerGroup";
 
 	// Kafka topic names
+	public static final String	ACKNOWLEDGED_STREAM_SUFFIX			= "_committed";
 	public static final String	PATIENTS_STREAM					= "patients-Stream";
 	public static final String	BILLING_COST_FUSION_STREAM			= "billingCost-fusionStream";
 	public static final String	INSURANCE_DETAILS_FUSION_STREAM		= "insuranceDetails-fusionStream";
@@ -29,7 +30,7 @@ public class ProjectFusionConstants
 	public static final int		ELASTIC_SEARCH_CLUSTER_PORT			= 9200;
 	public static final String	ES_DEFAULT_INDEX_TYPE				= "_doc";
 	public static final String	INCOMING_ES_RECORD_DF				= "dd-mm-yyyy";
-	public static final int		ELASTICSEARCH_BULK_INSERT_WINDOW_COUNT	= 2;
+	public static final int		ELASTICSEARCH_BULK_INSERT_WINDOW_COUNT	= 50;
 
 	// Elastic Search indexes names
 	public static final String	PATIENT_INFO						= "patient_info";

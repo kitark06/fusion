@@ -56,7 +56,8 @@ public class CommonUtilityMethods
 	{
 		Properties properties = new Properties();
 		properties.setProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, KAFKA_CLUSTER_IP_PORT);
-		properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, FUSION_CONSUMER_GROUP+1);
+		//TODO why +1 ?
+		properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, FUSION_CONSUMER_GROUP/*+1*/);
 
 		FlinkKafkaConsumer011<T> flinkKafkaConsumer011 = new FlinkKafkaConsumer011<T>(kafkaTopics, deserializer,properties); // or use Pattern.compile("\\w+-fusionStream")
 		flinkKafkaConsumer011.setStartFromEarliest();

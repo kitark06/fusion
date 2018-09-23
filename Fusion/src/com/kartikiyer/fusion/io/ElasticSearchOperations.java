@@ -8,6 +8,7 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -36,6 +37,7 @@ public class ElasticSearchOperations implements AutoCloseable
 
 	public BulkResponse performBulkInsert(BulkRequest requests) throws IOException
 	{
+		requests.setRefreshPolicy(RefreshPolicy.WAIT_UNTIL);
 		return client.bulk(requests);
 	}
 

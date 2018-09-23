@@ -9,11 +9,12 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 
 
 public class KeyByPcnMapper extends RichMapFunction<String, Tuple2<String, String>>
 {
-	Logger	LOG	= LoggerFactory.getLogger(KeyByPcnMapper.class);
+	private static final Logger	log	= LoggerFactory.getLogger(KeyByPcnMapper.class);
 
 	Gson		gson;
 
@@ -27,11 +28,21 @@ public class KeyByPcnMapper extends RichMapFunction<String, Tuple2<String, Strin
 	@Override
 	public Tuple2<String, String> map(String value)
 	{
-		String key;
-		key = gson.fromJson(value, JsonObject.class)
-				.get("pcn")
-				.getAsString();
-		LOG.debug("key [{}] -- value = [{}]",key,value);
-		return new Tuple2<String, String>(key, value);
+		/*String key = null;
+		try
+		{
+			key = gson.fromJson(value, JsonObject.class)
+					.get("pcn")
+					.getAsString();
+			log.error("key [{}] -- value = [{}]",key,value);
+		}
+		catch (JsonSyntaxException e)
+		{
+			// TODO Auto-generated catch block
+			log.error("key [{}] -- value = [{}]",key,value);
+			e.printStackTrace();
+		}*/
+
+		return new Tuple2<String, String>(value, value);
 	}
 }

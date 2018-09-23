@@ -17,18 +17,21 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.xcontent.XContentType;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.kartikiyer.fusion.StreamingCore;
 import com.kartikiyer.fusion.io.ElasticSearchOperations;
 
 
 public class ElasticSearchBulkIndexMapper extends RichAllWindowFunction<String, BulkItemResponse, GlobalWindow>
 {
-	Logger						LOG	= LoggerFactory.getLogger(ElasticSearchBulkIndexMapper.class);
+	private static final Logger		log	= LoggerFactory.getLogger(ElasticSearchBulkIndexMapper.class);
 
 	private String	index;
 	private String	type;
 	private String	elasticSearchClusterIp;
 	private int	elasticSearchClusterPort;
+	Gson			gson;
 
 	public ElasticSearchBulkIndexMapper(String index)
 	{
@@ -40,11 +43,11 @@ public class ElasticSearchBulkIndexMapper extends RichAllWindowFunction<String, 
 	public void open(Configuration config) throws Exception
 	{
 		super.open(config);
-		ParameterTool parameters = (ParameterTool) getRuntimeContext()	.getExecutionConfig()
-															.getGlobalJobParameters();
+		ParameterTool parameters = (ParameterTool) getRuntimeContext().getExecutionConfig().getGlobalJobParameters();
 		this.type = parameters.get("mappingType");
 		this.elasticSearchClusterIp = parameters.get("elasticSearchClusterIp");
 		this.elasticSearchClusterPort = parameters.getInt("elasticSearchClusterPort");
+		gson = new Gson();
 	}
 
 	@Override
@@ -55,9 +58,10 @@ public class ElasticSearchBulkIndexMapper extends RichAllWindowFunction<String, 
 		BulkRequest requests = new BulkRequest();
 		values.forEach(json ->
 		{
-			IndexRequest request = new IndexRequest(index, type);
-			request.source(json, XContentType.JSON);
-			// request.
+			String docID = gson.fromJson(json, JsonObject.class).get("pcn").getAsString();
+
+			IndexRequest request = new IndexRequest(index, type, docID).source(json, XContentType.JSON);
+//			request.
 			requests.add(request);
 		});
 
@@ -65,15 +69,16 @@ public class ElasticSearchBulkIndexMapper extends RichAllWindowFunction<String, 
 		try
 		{
 			bulkResponse = esOps.performBulkInsert(requests);
-			if (bulkResponse.hasFailures())
-				bulkResponse.forEach(response ->
+
+			bulkResponse.forEach(response ->
+			{
+				if (response.isFailed())
 				{
-					if (response.isFailed()) {
-						LOG.error(response.getClass().toString());
-						LOG.error(response.getId().toString());
-						out.collect(response);
-					}
-				});
+					log.error(response.getFailureMessage());
+				}
+
+				out.collect(response);
+			});
 		}
 		catch (IOException e)
 		{

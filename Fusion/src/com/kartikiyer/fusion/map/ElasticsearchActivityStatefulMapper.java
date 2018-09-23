@@ -17,7 +17,7 @@ import org.slf4j.Logger;
 
 public class ElasticsearchActivityStatefulMapper extends RichMapFunction<Tuple2<String, String>, Optional<String>>
 {
-	Logger								LOG	= LoggerFactory.getLogger(ElasticsearchActivityStatefulMapper.class);
+	private static final Logger								log	= LoggerFactory.getLogger(ElasticsearchActivityStatefulMapper.class);
 
 	int									totalStreamNumber;
 	private transient ReducingState<Integer>	sumState;
@@ -42,7 +42,7 @@ public class ElasticsearchActivityStatefulMapper extends RichMapFunction<Tuple2<
 	public Optional<String> map(Tuple2<String, String> record) throws Exception
 	{
 		sumState.add(1);
-		LOG.debug("key [{}] -- sumState [{}] ",record.f0,sumState.get());
+		log.debug("key [{}] -- sumState [{}] ",record.f0,sumState.get());
 		if (sumState.get() == totalStreamNumber)
 			queryablePcn = Optional.of(record.f0); // here record has a key which is the PCN (field0) and value at field1. Hence record.f0 is emitted as the optional output of this stage when the criteria is met
 

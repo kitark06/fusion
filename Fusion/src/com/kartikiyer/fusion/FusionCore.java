@@ -77,18 +77,17 @@ public class FusionCore
 		int parallelism = 1;
 		DataStream<String> stream = env.addSource(flinkKafkaConsumer).setParallelism(parallelism);
 
-		stream	.map(x -> new Tuple2<String,String>(x, x))/*.name("KeyByPcnMapper")*/
-				// parse and map input jsons create tuple2 of [jsonDocId, Value] which gets keyed by the docID
+		stream	.map(x -> new Tuple2<String,String>(x, x)).name("MapToPair")
 				.keyBy(0)
 				.map(new ElasticsearchActivityStatefulMapper()).name("ElasticsearchActivityStatefulMapper")
 				.filter(queryablePcn -> queryablePcn.isPresent()).name("queryablePcnFilter")
-				.map(new DataEnrichmentMapper())
+				.map(new DataEnrichmentMapper()).name("DataEnrichmentMapper")
 				.writeAsText("D:/workspace/output", WriteMode.OVERWRITE)
 				.setParallelism(parallelism);
 
 //		env.setParallelism(parallelism);
 		System.out.println(env.getExecutionPlan());
-		 env.execute();
+//		 env.execute();
 	}
 }
 

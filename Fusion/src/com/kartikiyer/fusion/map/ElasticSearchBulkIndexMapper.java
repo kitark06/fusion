@@ -7,6 +7,7 @@ import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.windowing.RichAllWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.GlobalWindow;
+import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.apache.http.HttpHost;
 import org.slf4j.Logger;
@@ -23,15 +24,17 @@ import com.kartikiyer.fusion.StreamingCore;
 import com.kartikiyer.fusion.io.ElasticSearchOperations;
 
 
-public class ElasticSearchBulkIndexMapper extends RichAllWindowFunction<String, BulkItemResponse, GlobalWindow>
+public class ElasticSearchBulkIndexMapper extends RichAllWindowFunction<String, BulkItemResponse, TimeWindow>
 {
-	private static final Logger		log	= LoggerFactory.getLogger(ElasticSearchBulkIndexMapper.class);
+	private static final long	serialVersionUID	= 1L;
 
-	private String	index;
-	private String	type;
-	private String	elasticSearchClusterIp;
-	private int	elasticSearchClusterPort;
-	Gson			gson;
+	private static final Logger	log				= LoggerFactory.getLogger(ElasticSearchBulkIndexMapper.class);
+
+	private String				index;
+	private String				type;
+	private String				elasticSearchClusterIp;
+	private int				elasticSearchClusterPort;
+	Gson						gson;
 
 	public ElasticSearchBulkIndexMapper(String index)
 	{
@@ -51,29 +54,28 @@ public class ElasticSearchBulkIndexMapper extends RichAllWindowFunction<String, 
 	}
 
 	@Override
-	public void apply(GlobalWindow window, Iterable<String> values, Collector<BulkItemResponse> out)
+	public void apply(TimeWindow window, Iterable<String> values, Collector<BulkItemResponse> out) throws Exception
 	{
+
 		HttpHost[] hosts = new HttpHost[] { new HttpHost(elasticSearchClusterIp, elasticSearchClusterPort) };
-		ElasticSearchOperations esOps = new ElasticSearchOperations(hosts);
-		BulkRequest requests = new BulkRequest();
-		values.forEach(json ->
+		try (ElasticSearchOperations esOps = new ElasticSearchOperations(hosts))
 		{
-			String docID = gson.fromJson(json, JsonObject.class).get("pcn").getAsString();
+			BulkRequest requests = new BulkRequest();
+			values.forEach(json ->
+			{
+				String docID = gson.fromJson(json, JsonObject.class).get("pcn").getAsString();
 
-			IndexRequest request = new IndexRequest(index, type, docID).source(json, XContentType.JSON);
-//			request.
-			requests.add(request);
-		});
+				IndexRequest request = new IndexRequest(index, type, docID).source(json, XContentType.JSON);
+				requests.add(request);
+			});
 
-		BulkResponse bulkResponse;
-		try
-		{
-			bulkResponse = esOps.performBulkInsert(requests);
+			BulkResponse bulkResponse = esOps.performBulkInsert(requests);
 
 			bulkResponse.forEach(response ->
 			{
 				if (response.isFailed())
 				{
+					// TODO Auto-generated catch block
 					log.error(response.getFailureMessage());
 				}
 
@@ -85,6 +87,7 @@ public class ElasticSearchBulkIndexMapper extends RichAllWindowFunction<String, 
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+
 	}
 }
 

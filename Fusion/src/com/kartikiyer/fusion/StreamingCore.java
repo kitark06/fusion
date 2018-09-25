@@ -15,9 +15,21 @@ import java.util.Map;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.windowing.AllWindowFunction;
+import org.apache.flink.streaming.api.windowing.assigners.GlobalWindows;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
+import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.api.windowing.triggers.CountTrigger;
+import org.apache.flink.streaming.api.windowing.triggers.PurgingTrigger;
+import org.apache.flink.streaming.api.windowing.triggers.Trigger;
+import org.apache.flink.streaming.api.windowing.windows.GlobalWindow;
+import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.streaming.api.windowing.windows.Window;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
+import org.apache.flink.util.Collector;
 import org.apache.http.HttpHost;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -28,6 +40,7 @@ import com.kartikiyer.fusion.io.ElasticSearchOperations;
 import com.kartikiyer.fusion.io.KafkaWriter;
 import com.kartikiyer.fusion.map.AckEsInsertMapper;
 import com.kartikiyer.fusion.map.ElasticSearchBulkIndexMapper;
+import com.kartikiyer.fusion.trigger.CountTimeOutTrigger;
 import com.kartikiyer.fusion.util.CommonUtilityMethods;
 import com.kartikiyer.fusion.util.CsvToJson;
 import com.kartikiyer.fusion.util.ProjectFusionConstants;
@@ -110,7 +123,7 @@ public class StreamingCore
 	private void kafkaToElasticSearch(String[] args)
 	{
 		Map<String, String> topicsToIndex = new HashMap<>();
-		topicsToIndex.put(PATIENTS_STREAM, PATIENT_INFO);
+		// topicsToIndex.put(PATIENTS_STREAM, PATIENT_INFO);
 		topicsToIndex.put(BILLING_COST_FUSION_STREAM, BILLING_COST);
 		topicsToIndex.put(INSURANCE_DETAILS_FUSION_STREAM, INSURANCE_DETAILS);
 		topicsToIndex.put(MEDICINE_FUSION_STREAM, MEDICINE_ORDERS);
@@ -134,7 +147,11 @@ public class StreamingCore
 
 		DataStream<String> stream = env.addSource(flinkKafkaConsumer);
 
-		stream	.countWindowAll(ELASTICSEARCH_BULK_INSERT_WINDOW_COUNT)
+		// stream .countWindowAll(ELASTICSEARCH_BULK_INSERT_WINDOW_COUNT)
+		stream	.timeWindowAll(Time.seconds(20))
+				.trigger(PurgingTrigger.of(new CountTimeOutTrigger<>(50)))
+				// build count trigger with time based triggers too
+				// stream .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(20))).trigger(PurgingTrigger.of(new CountTimeOutTrigger<>(50)))
 				.apply(new ElasticSearchBulkIndexMapper(indexName))
 				.name("ElasticSearchBulkIndexMapper")
 				.map(new AckEsInsertMapper(topic))

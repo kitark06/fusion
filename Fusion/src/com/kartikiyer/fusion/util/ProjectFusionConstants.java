@@ -10,10 +10,10 @@ public class ProjectFusionConstants
 
 	// Flink Cluster details
 	public static final int		FLINK_CLUSTER_PORT					= 6123;
-	public static final String	FLINK_CLUSTER_IP					= "192.168.0.105";
+	public static final String	FLINK_CLUSTER_IP					= "localhost";
 
 	// Kafka Cluster details
-	public static final String	KAFKA_CLUSTER_IP_PORT				= "192.168.0.104:9092";
+	public static final String	KAFKA_CLUSTER_IP_PORT				= "localhost:9092";
 	public static final String	FUSION_CONSUMER_GROUP				= "fusionConsumerGroup";
 
 	// Kafka topic names

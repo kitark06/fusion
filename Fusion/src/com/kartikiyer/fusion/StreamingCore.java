@@ -147,11 +147,9 @@ public class StreamingCore
 
 		DataStream<String> stream = env.addSource(flinkKafkaConsumer);
 
-		// stream .countWindowAll(ELASTICSEARCH_BULK_INSERT_WINDOW_COUNT)
 		stream	.timeWindowAll(Time.seconds(20))
-				.trigger(PurgingTrigger.of(new CountTimeOutTrigger<>(50)))
-				// build count trigger with time based triggers too
-				// stream .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(20))).trigger(PurgingTrigger.of(new CountTimeOutTrigger<>(50)))
+				// build count trigger with time based trigger too
+				.trigger(PurgingTrigger.of(new CountTimeOutTrigger<>(ELASTICSEARCH_BULK_INSERT_WINDOW_COUNT)))
 				.apply(new ElasticSearchBulkIndexMapper(indexName))
 				.name("ElasticSearchBulkIndexMapper")
 				.map(new AckEsInsertMapper(topic))

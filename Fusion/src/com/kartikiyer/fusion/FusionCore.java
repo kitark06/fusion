@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import com.kartikiyer.fusion.map.DataEnrichmentMapper;
 import com.kartikiyer.fusion.map.ElasticsearchActivityStatefulMapper;
-import com.kartikiyer.fusion.map.KeyByPcnMapper;
 import com.kartikiyer.fusion.model.BillingCost;
 import com.kartikiyer.fusion.model.InsuranceDetails;
 import com.kartikiyer.fusion.model.MedicineOrders;
@@ -27,10 +26,33 @@ import com.kartikiyer.fusion.model.Treatment;
 import com.kartikiyer.fusion.util.CommonUtilityMethods;
 
 
+/**
+ * The FusionCore is the main class and heart of this project with the main objective being to efficiently and effectively join streams of data in real-time.
+ * <p>
+ * The main challenge in any streaming project is to handle problems like out-of-order and delayed message delivery.
+ * At the same time, with disparate systems handling data influx, it is vital to know the precise moment when all data [spread across multiple schemas] have been inserted onto the storage system.
+ * By keeping a track of documents inserted by various components/streams , it guarantees us data completeness & eliminates the need to fire any unnecessary queries to check if data is present.
+ * <p>
+ * If we have n streams, a brute force implementation would mean we fire n*n queries on the database & only when the n-th/last bit of data is inserted will the data be marked as complete and viable for join.
+ * <br>
+ * So out of the total n*(n-1) queries are fired, only (n-1) would actually bring the complete info once all the data is inserted. The rest (n-1)^2 are wasted.
+ * <p>
+ * This project addresses and provides the solution to this problem by performing stateful stream processing & delivering atleast-once semantics
+ *
+ * @author Kartik Iyer
+ */
 public class FusionCore
 {
 	Logger log = LoggerFactory.getLogger(FusionCore.class);
 
+	/**
+	 * The main method.
+	 *
+	 * @param args
+	 *             the arguments
+	 * @throws Exception
+	 *              the exception
+	 */
 	public static void main(String[] args) throws Exception
 	{
 		FusionCore fusionCore = new FusionCore();
@@ -38,6 +60,14 @@ public class FusionCore
 	}
 
 
+	/**
+	 * Start fusion.
+	 *
+	 * @param jarfiles
+	 *             the jarfiles
+	 * @throws Exception
+	 *              the exception
+	 */
 	private void startFusion(String... jarfiles) throws Exception
 	{
 		// List<String> kafkaTopics = Arrays.asList(new String[] { BILLING_COST_FUSION_STREAM, INSURANCE_DETAILS_FUSION_STREAM, MEDICINE_FUSION_STREAM, TREATMENT_FUSION_STREAM });
@@ -77,22 +107,20 @@ public class FusionCore
 		int parallelism = 1;
 		DataStream<String> stream = env.addSource(flinkKafkaConsumer).setParallelism(parallelism);
 
-		stream	.map(x -> new Tuple2<String,String>(x, x)).name("MapToPair")
+		stream	.map(x -> new Tuple2<String, String>(x, x))
+				.name("MapToPair")
 				.keyBy(0)
-				.map(new ElasticsearchActivityStatefulMapper()).name("ElasticsearchActivityStatefulMapper")
-				.filter(queryablePcn -> queryablePcn.isPresent()).name("queryablePcnFilter")
-				.map(new DataEnrichmentMapper()).name("DataEnrichmentMapper")
+				.map(new ElasticsearchActivityStatefulMapper())
+				.name("ElasticsearchActivityStatefulMapper")
+				.filter(queryablePcn -> queryablePcn.isPresent())
+				.name("queryablePcnFilter")
+				.map(new DataEnrichmentMapper())
+				.name("DataEnrichmentMapper")
 				.writeAsText("D:/workspace/output", WriteMode.OVERWRITE)
 				.setParallelism(parallelism);
 
-//		env.setParallelism(parallelism);
+		env.setParallelism(parallelism);
 		System.out.println(env.getExecutionPlan());
-//		 env.execute();
+		env.execute();
 	}
 }
-
-// done so as to parallelize the subsequent countWindow operation
-// using Math.abs to keep the resulting integer positive as String.hashcode can return negative values
-//				.keyBy(queryablePcn -> Math.abs(queryablePcn.get().hashCode() % parallelism))
-//				.countWindow(FUSION_CORE_WINDOW_COUNT)
-//				.apply(new DataEnrichmentMapper2())

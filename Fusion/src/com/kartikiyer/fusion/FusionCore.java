@@ -100,7 +100,7 @@ public class FusionCore
 		FlinkKafkaConsumerBase<String> flinkKafkaConsumer = CommonUtilityMethods.getFlinkKakfaConsumer(kafkaTopics, new SimpleStringSchema());
 
 		// StreamExecutionEnvironment env = StreamExecutionEnvironment.createRemoteEnvironment(FLINK_CLUSTER_IP, FLINK_CLUSTER_PORT, jarfiles);
-		StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment();
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
 		env.getConfig().setGlobalJobParameters(CommonUtilityMethods.buildGlobalJobParameters(extraParameters));
 
@@ -121,6 +121,6 @@ public class FusionCore
 
 		env.setParallelism(parallelism);
 		System.out.println(env.getExecutionPlan());
-		env.execute();
+//		env.execute();
 	}
 }

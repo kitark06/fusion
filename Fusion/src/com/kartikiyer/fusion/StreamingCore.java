@@ -46,10 +46,21 @@ import com.kartikiyer.fusion.util.CsvToJson;
 import com.kartikiyer.fusion.util.ProjectFusionConstants;
 
 
+/**
+ * StreamingCore is a supporting class with it being responsible for generating a steady stream of input from the input files. It has various methods for loading data into Kafka and also indexing the data in ElasticSearch.
+ * The logic in {@link FusionCore} relies on this class to provide it with all the input needed.
+ *
+ * @author Kartik Iyer
+ */
 public class StreamingCore
 {
 	Logger log = LoggerFactory.getLogger(StreamingCore.class);
 
+	/**
+	 * The main method.
+	 *
+	 * @param args the arguments
+	 */
 	public static void main(String[] args)
 	{
 		StreamingCore streamingCore = new StreamingCore();
@@ -63,6 +74,14 @@ public class StreamingCore
 		streamingCore.kafkaToElasticSearch(args);
 	}
 
+	/**
+	 * A convenience method which lists a set of files and the Kafka topic names and triggers {@link StreamingCore#streamFiletoKafkaTopic}.
+	 *
+	 * @param kafkaClusterIp Ip address & Port separated by colon poinitng to the location of the kafka cluster
+	 * @param keySerializer the serializer used for the message key
+	 * @param valueSerializer the serializer used for the message value
+	 * @param dataNeeded Number of data needed. The default input files have max 14,000 transactions.
+	 */
 	private void filesToKafka(String kafkaClusterIp, String keySerializer, String valueSerializer, int dataNeeded)
 	{
 		String directory = "inputFiles/";
@@ -77,6 +96,17 @@ public class StreamingCore
 					() -> streamFiletoKafkaTopic(fileName, kafkaClusterIp, topicName + "Client", keySerializer, valueSerializer, topicName, dataNeeded)).start());
 	}
 
+	/**
+	 * Reads the static input files and streams/inserts it to a kafka topic.
+	 *
+	 * @param inputFileLocation the input file location
+	 * @param kafkaClusterIp Ip address & Port separated by colon poinitng to the location of the kafka cluster
+	 * @param clientId The client id used by the Kafka Producer
+	 * @param keySerializer the serializer used for the message key
+	 * @param valueSerializer the serializer used for the message value
+	 * @param topicName the topic name onto which records from the file will be pushed
+	 * @param dataNeeded Number of transactions needed. The default input files have max 14,000 transactions.
+	 */
 	private void streamFiletoKafkaTopic(String inputFileLocation, String kafkaClusterIp, String clientId, String keySerializer, String valueSerializer, String topicName, int dataNeeded)
 	{
 		try (KafkaWriter<String, String> writer = new KafkaWriter<>(kafkaClusterIp, clientId, keySerializer, valueSerializer, topicName);
@@ -120,6 +150,11 @@ public class StreamingCore
 		}
 	}
 
+	/**
+	 * A convenience method which lists a set of Kafka topic names and ElasticSearch indexes and triggers {@link StreamingCore#streamRecordsToES}
+	 *
+	 * @param args the args
+	 */
 	private void kafkaToElasticSearch(String[] args)
 	{
 		Map<String, String> topicsToIndex = new HashMap<>();
@@ -132,6 +167,13 @@ public class StreamingCore
 		topicsToIndex.forEach((topic, indexName) -> new Thread(() -> streamRecordsToES(topic, indexName, args)).start());
 	}
 
+	/**
+	 * Reads the input kafka topic and indexes each message into the specified output ES index.
+	 *
+	 * @param topic The name of the input Kafka topic
+	 * @param indexName The name of the output ElasticSearch Index
+	 * @param jarfiles the jarfile location if launching the job on a remote cluster
+	 */
 	private void streamRecordsToES(String topic, String indexName, String... jarfiles)
 	{
 		List<String> topics = new ArrayList<>();
@@ -141,7 +183,7 @@ public class StreamingCore
 
 		// TODO
 		// StreamExecutionEnvironment env = StreamExecutionEnvironment.createRemoteEnvironment(FLINK_CLUSTER_IP, FLINK_CLUSTER_PORT, jarfiles);
-		StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment();
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.getConfig().setGlobalJobParameters(CommonUtilityMethods.buildGlobalJobParameters());
 
 
@@ -157,6 +199,7 @@ public class StreamingCore
 
 		try
 		{
+			System.out.println(env.getExecutionPlan()); // {"nodes":[{"id":3,"type":"Source: Custom Source","pact":"Data Source","contents":"Source: Custom Source","parallelism":4},{"id":9,"type":"ElasticSearchBulkIndexMapper","pact":"Operator","contents":"ElasticSearchBulkIndexMapper","parallelism":1,"predecessors":[{"id":3,"ship_strategy":"HASH","side":"second"}]},{"id":11,"type":"AckEsInsertMapper","pact":"Operator","contents":"AckEsInsertMapper","parallelism":4,"predecessors":[{"id":9,"ship_strategy":"REBALANCE","side":"second"}]}]}
 			env.execute();
 		}
 		catch (Exception e)
@@ -166,6 +209,12 @@ public class StreamingCore
 		}
 	}
 
+	/**
+	 * Loads static look up tables into ES from files.
+	 *
+	 * @param inputFileLocation the input location of the file to be loaded
+	 * @param indexName the name of teh ES index onto which records from the file will be inserted
+	 */
 	private void loadLookUpTableIntoES(String inputFileLocation, String indexName)
 	{
 
